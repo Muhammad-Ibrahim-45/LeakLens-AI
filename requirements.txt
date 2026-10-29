@@ -1,0 +1,11 @@
+pandas
+scikit-learn
+matplotlib
+seaborn
+imbalanced-learn
+xgboost
+datasets
+faker
+easyocr
+opencv-python
+streamlit
