@@ -1,0 +1,5 @@
+model,accuracy,macro_F1,F1_credential
+Voting ensemble,0.9927,0.9922,0.979
+LogReg (tuned),0.9927,0.9921,0.979
+LinearSVM (tuned),0.993,0.9919,0.981
+LinearSVM (default),0.9927,0.9916,0.98
