@@ -1,0 +1,7 @@
+,Regex F1,ML F1
+safe,0.947,0.996
+email,1.0,1.0
+phone,0.984,0.996
+url_internal,1.0,1.0
+credential,0.773,0.986
+macro avg,0.941,0.996

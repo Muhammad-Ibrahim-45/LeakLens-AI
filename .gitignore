@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# unused .joblib file
+src/leaklens_model.joblib
+src/leaklens_logreg.joblib
