@@ -7,61 +7,39 @@ One file, used by BOTH the notebook and the Streamlit app, so the logic lives in
     analyze(img, ...)           -> OCR + classify + draw in one call
 """
 
+import os
 import re
-from pathlib import Path
+import sys
 
 import cv2
 import joblib
 import numpy as np
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
 
-# ------------------------------------------------------------------ model setup
-
-HERE = Path(__file__).resolve().parent
-MODEL_PATH = HERE / "leaklens_logreg.joblib"
-
-_model = None
-
+MODEL_PATH = os.path.join(HERE, "leaklens_logreg.joblib")
 THRESHOLD = 0.40          # default sensitivity
-
 # A private IP with no scheme/port/path (e.g. "192.168.1.132") is flagged as an internal URL only when the
 # rest of the OCR piece has at most this many words of 3+ letters.  0 = only when the IP is alone,
 # None = never.  "10.20.30.45 - Remote Desktop Connection" has 3 words, so it stays safe at 2.
 BARE_IP_MAX_WORDS = 2
-
 # Domains whose addresses must always be recognised, even when OCR turned the "@" into a letter.
-KNOWN_EMAIL_DOMAINS = [
-    "cloud.neduet.edu.pk",
-    "neduet.edu.pk",
-    "gmail.com",
-    "yahoo.com",
-    "outlook.com",
-    "hotmail.com",
-    "icloud.com"
-]
+KNOWN_EMAIL_DOMAINS = ["cloud.neduet.edu.pk", "neduet.edu.pk",
+                       "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"]
 
-COLORS = {
-    "email": (255, 100, 0),
-    "phone": (0, 140, 255),
-    "url_internal": (200, 0, 160),
-    "credential": (0, 0, 230)
-}  # BGR
+COLORS = {"email": (255, 100, 0), "phone": (0, 140, 255),
+          "url_internal": (200, 0, 160), "credential": (0, 0, 230)}   # BGR
+
+_model = None
 
 
 def get_model():
-    """Load the trained model once and reuse it."""
     global _model
-
     if _model is None:
-        if not MODEL_PATH.is_file():
-            raise FileNotFoundError(
-                f"Model file missing: {MODEL_PATH}"
-            )
-
         _model = joblib.load(MODEL_PATH)
-
     return _model
-
 
 # ------------------------------------------------------------------ patterns
 
