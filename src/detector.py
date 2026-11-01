@@ -19,7 +19,13 @@ if HERE not in sys.path:
 
 MODEL_PATH = os.path.join(HERE, "leaklens_logreg.joblib")
 THRESHOLD = 0.40          # default sensitivity
-FLAG_BARE_IPS = False     # True = also flag a lone private IP such as "10.20.30.45" (not a URL)
+# A private IP with no scheme/port/path (e.g. "192.168.1.132") is flagged as an internal URL only when the
+# rest of the OCR piece has at most this many words of 3+ letters.  0 = only when the IP is alone,
+# None = never.  "10.20.30.45 - Remote Desktop Connection" has 3 words, so it stays safe at 2.
+BARE_IP_MAX_WORDS = 2
+# Domains whose addresses must always be recognised, even when OCR turned the "@" into a letter.
+KNOWN_EMAIL_DOMAINS = ["cloud.neduet.edu.pk", "neduet.edu.pk",
+                       "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"]
 
 COLORS = {"email": (255, 100, 0), "phone": (0, 140, 255),
           "url_internal": (200, 0, 160), "credential": (0, 0, 230)}   # BGR
@@ -58,6 +64,12 @@ INTERNAL_URL = re.compile(
     r"|(?:\bhttps?\s*:\s*[/\\Il|]{0,3}\s*(?:[\w-]+[. ]){1,4}(?:corp|internal|lan|local))"
     r"|(?:\bhttps?\s*:\s*[/\\Il|]{0,3}\s*(?:staging|dev|uat|intranet|admin|jenkins|grafana|vpn)[. ])")
 
+# local part directly followed by a known domain; the "@" may be missing, spaced, or read as a letter or symbol
+_KNOWN_EMAIL = re.compile(
+    r"(?i)(?<![\w.+-])[\w+-][\w.+-]*[A-Za-z0-9](?:\s?[@\u00a9]\s?|\(a\))?(?:"
+    + "|".join(re.escape(d) for d in sorted(KNOWN_EMAIL_DOMAINS, key=len, reverse=True)) + r")\b")
+BARE_IP = re.compile(r"(?<![\d.])" + _PRIV + _NOT_MORE_DIGITS)
+
 RULES = [
     ("credential", re.compile(r"AKIA[0-9A-Z]{12,20}")),
     ("credential", re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}")),
@@ -70,6 +82,7 @@ RULES = [
     ("credential", re.compile(r"(?i)\b(?:password|passwd|pwd)\s+(?:is\s+)?['\"]?(?=\S*\d)\S{6,}")),
     ("url_internal", INTERNAL_URL),
     ("email", EMAIL),
+    ("email", _KNOWN_EMAIL),
     ("email", re.compile(r"(?i)\b\w*e-?mail\w*\s*[:=]\s*['\"]?[\w.+-]{2,}\."
                          r"(?:com|org|net|edu|gov|io|co|pk|uk|de|in|us|info|biz|me|app|dev|ai|ca|au|fr|it|es|nl|ru|cn|jp|br"
                          r"|corp|internal|local|lan)\b")),
@@ -111,6 +124,8 @@ def credential_ok(text):
         return True
     for t in re.findall(r"\S+", text):
         t = t.strip("'\".,;:()[]{}")
+        if re.search(r"@v?\d+(?:\.\d+)+$", t) or re.fullmatch(r"v?\d+(?:\.\d+)+", t):   # version strings
+            continue
         if (len(t) >= 6 and not ID_LIKE.fullmatch(t)
                 and any(c.isdigit() for c in t) and any(c.isalpha() for c in t)):
             return True
@@ -118,16 +133,32 @@ def credential_ok(text):
 
 
 # ------------------------------------------------------------------- main API
+def rule_label(text):
+    """Fixed-format rules. Returns a label or None. These are checked BEFORE the model."""
+    for lab, pat in RULES:
+        if pat.search(text):
+            return lab
+    if BARE_IP_MAX_WORDS is not None:
+        m = BARE_IP.search(text)
+        if m and len(re.findall(r"[A-Za-z]{3,}", text[:m.start()] + " " + text[m.end():])) <= BARE_IP_MAX_WORDS:
+            return "url_internal"
+    return None
+
+
 def classify(items, threshold=THRESHOLD):
-    """Return a copy of the OCR items with label, prob and source ('model' or 'rule')."""
+    """Return a copy of the OCR items with label, prob and source ('model', 'rule' or 'rule+join').
+
+    Order of decisions for every OCR piece:
+      1. a fixed-format rule matches (email, internal URL, key formats)  -> that label wins
+      2. otherwise the model's sensitivity (1 - P(safe)) must reach the threshold,
+         and its answer must pass the sanity check for its type
+    """
     items = [dict(i) for i in items]
     if not items:
         return items
     model = get_model()
     classes = [str(c) for c in model.classes_]
     safe = classes.index("safe")
-    rules = RULES + ([("url_internal", re.compile(r"(?<![\d.])" + _PRIV + _NOT_MORE_DIGITS))]
-                     if FLAG_BARE_IPS else [])
     probs = model.predict_proba([normalize(i["text"]) for i in items])
     for it, p in zip(items, probs):
         t = normalize(it["text"])
@@ -135,7 +166,10 @@ def classify(items, threshold=THRESHOLD):
         others = p.copy()
         others[safe] = -1
         label, prob, src = "safe", round(float(1 - p_sens), 3), "-"
-        if p_sens >= threshold:
+        rl = rule_label(t)
+        if rl:
+            label, prob, src = rl, 1.0, "rule"
+        elif p_sens >= threshold:
             lab = classes[int(np.argmax(others))]
             if lab == "phone":
                 ok = phone_ok(t)
@@ -149,13 +183,8 @@ def classify(items, threshold=THRESHOLD):
                 ok = True
             if ok:
                 label, prob, src = lab, round(float(p_sens), 3), "model"
-        if label == "safe":
-            for lab, pat in rules:
-                if pat.search(t):
-                    label, prob, src = lab, 1.0, "rule"
-                    break
         it["label"], it["prob"], it["source"] = label, prob, src
-    return _stitch(items, rules)
+    return _stitch(items, RULES)
 
 
 def _stitch(results, rules):
