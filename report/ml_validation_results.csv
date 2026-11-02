@@ -1,6 +1,6 @@
 model,accuracy,macro_F1,F1_safe,F1_email,F1_phone,F1_url_internal,F1_credential,seconds
-LinearSVM (no weights),0.9929,0.9923,0.995,1.0,0.986,1.0,0.98,2.9
-LinearSVM (balanced),0.9929,0.9923,0.995,1.0,0.987,1.0,0.979,2.5
-LogReg (balanced),0.9917,0.991,0.994,1.0,0.986,1.0,0.974,4.1
-LogReg (no weights),0.9873,0.9871,0.99,1.0,0.978,1.0,0.967,4.2
-RandomForest (balanced),0.984,0.9828,0.989,1.0,0.96,1.0,0.965,4.1
+LinearSVM (no weights),0.9929,0.9923,0.995,1.0,0.986,1.0,0.98,3.2
+LinearSVM (balanced),0.9929,0.9923,0.995,1.0,0.987,1.0,0.979,3.5
+LogReg (balanced),0.9917,0.991,0.994,1.0,0.986,1.0,0.974,5.6
+LogReg (no weights),0.9873,0.9871,0.99,1.0,0.978,1.0,0.967,6.9
+RandomForest (balanced),0.984,0.9828,0.989,1.0,0.96,1.0,0.965,5.9

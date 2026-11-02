@@ -24,8 +24,28 @@ THRESHOLD = 0.40          # default sensitivity
 # None = never.  "10.20.30.45 - Remote Desktop Connection" has 3 words, so it stays safe at 2.
 BARE_IP_MAX_WORDS = 2
 # Domains whose addresses must always be recognised, even when OCR turned the "@" into a letter.
-KNOWN_EMAIL_DOMAINS = ["cloud.neduet.edu.pk", "neduet.edu.pk",
-                       "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"]
+KNOWN_EMAIL_DOMAINS = [
+    # --- NED University ---
+    "cloud.neduet.edu.pk", "neduet.edu.pk",
+    # --- other Pakistani universities ---
+    "khi.iba.edu.pk", "iba.edu.pk", "nu.edu.pk", "ssuet.edu.pk", "szabist.edu.pk", "uok.edu.pk", "aku.edu",
+    "habib.edu.pk", "duhs.edu.pk", "dsu.edu.pk", "pafkiet.edu.pk", "iqra.edu.pk", "hamdard.edu.pk",
+    "bahria.edu.pk", "comsats.edu.pk", "nust.edu.pk", "giki.edu.pk", "pu.edu.pk", "lums.edu.pk",
+    "itu.edu.pk", "numl.edu.pk", "qau.edu.pk", "iiu.edu.pk", "riphah.edu.pk", "umt.edu.pk",
+    "bzu.edu.pk", "muet.edu.pk",
+    # --- Pakistani internet providers ---
+    "ptcl.net.pk", "nayatel.com",
+    # --- Google, Microsoft, Apple ---
+    "gmail.com", "googlemail.com", "outlook.com", "hotmail.com", "hotmail.co.uk", "icloud.com",
+    # --- Yahoo and other big providers ---
+    "yahoo.com", "yahoo.co.uk", "yahoo.co.in", "ymail.com", "rocketmail.com", "aol.com",
+    "zoho.com", "gmx.com", "gmx.net", "yandex.com", "yandex.ru", "rediffmail.com", "fastmail.com",
+    # --- privacy-focused providers ---
+    "protonmail.com", "proton.me", "tutanota.com", "tuta.com",
+    # --- internet providers abroad ---
+    "comcast.net", "verizon.net", "att.net", "sbcglobal.net", "btinternet.com", "web.de", "t-online.de", "orange.fr",
+    # --- add your own company or university domains here, for example: "mycompany.com"
+]
 
 COLORS = {"email": (255, 100, 0), "phone": (0, 140, 255),
           "url_internal": (200, 0, 160), "credential": (0, 0, 230)}   # BGR
@@ -49,7 +69,11 @@ ID_LIKE = re.compile(r"[A-Z]{2,6}-\d+(?:-\d+)*")
 EMAIL = re.compile(r"[\w.+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b")
 
 _PRIV = (r"(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}"
-         r"|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3})")
+         r"|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3})"
+         r"(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+         r"|192\.168\.\d{1,3}\.\d{1,3}"
+         r"|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}"
+         r"|127\.\d{1,3}\.\d{1,3}\.\d{1,3})")
 _NOT_MORE_DIGITS = r"(?!\.?\d)"
 # what counts as an INTERNAL URL: scheme + private/internal host, internal host names,
 # or a private IP followed by a port or a path. A bare IP alone is NOT a URL.
