@@ -85,9 +85,9 @@ COLORS = {
     "phone": (0, 140, 255), 
     "url_internal": (200, 0, 160),
     "credential": (0, 0, 230), 
-    "id_number": (0, 170, 0),
+    "id_number": (0, 170, 0)
     # Add any missing labels from your LABEL_NAMES here:
-    "your_missing_label_name": (100, 100, 100) ############################################################################
+   # "your_missing_label_name": (100, 100, 100) ############################################################################
 }
 _model = None
 
