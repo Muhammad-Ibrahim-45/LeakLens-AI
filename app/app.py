@@ -36,6 +36,9 @@ CSS = """
 .empty {text-align: center; padding: 1.2rem .5rem;}
 .empty h3 {margin-bottom: .2rem;}
 .small {opacity: .75; font-size: .85rem;}
+.risk {border: 3px solid; border-radius: 16px; padding: .7rem 1rem; text-align: center;}
+.risk-label {font-size: .72rem; letter-spacing: .12em; opacity: .7;}
+.risk-level {font-size: 2rem; font-weight: 800; line-height: 1.15;}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -147,16 +150,24 @@ flagged = out["flagged"]
 key = (hashlib.md5(data).hexdigest(), threshold, scale, style_name, margin)
 
 # ------------------------------------------------------------------ summary
+risk = detector.risk_assessment(flagged)
+RISK_COLORS = {"High": "#dc2626", "Medium": "#f59e0b", "Low": "#16a34a", "None": "#64748b"}
+RISK_TEXT = {"High": "High", "Medium": "Medium", "Low": "Low", "None": "Clear"}
+color = RISK_COLORS[risk["level"]]
 counts = Counter(r["label"] for r in flagged)
-m1, m2 = st.columns([1, 3])
-m1.metric("Sensitive items found", len(flagged))
-if counts:
-    m2.markdown("".join(f'<span class="chip" style="background:{hex_color(k)}">{LABEL_NAMES[k]} · {n}</span>'
-                        for k, n in counts.items()), unsafe_allow_html=True)
-elif not items:
-    m2.warning("No text could be read in this image. Try a larger OCR detail or a clearer screenshot.")
-else:
-    m2.success("Nothing sensitive found in this screenshot.")
+c1, c2 = st.columns([1.2, 3])
+c1.markdown(f'<div class="risk" style="border-color:{color}"><div class="risk-label">RISK LEVEL</div>'
+            f'<div class="risk-level" style="color:{color}">{RISK_TEXT[risk["level"]]}</div>'
+            f'<div class="small">Score {risk["score"]} / 100</div></div>', unsafe_allow_html=True)
+with c2:
+    if not items:
+        st.warning("No text could be read in this image. Try a larger OCR detail or a clearer screenshot.")
+    else:
+        st.markdown(f"**{risk['headline']}**")
+        if counts:
+            st.markdown("".join(f'<span class="chip" style="background:{hex_color(k)}">{LABEL_NAMES[k]} · {n}</span>'
+                                for k, n in counts.items()), unsafe_allow_html=True)
+        st.caption(risk["advice"])
 
 # ------------------------------------------------------------------ original and detected
 left, right = st.columns(2)

@@ -500,3 +500,35 @@ def redact(img, results, style="blur", margin=6):
             for _ in range(2):                                # two passes make the text unrecoverable
                 roi[:] = cv2.GaussianBlur(roi, (k, k), 0)
     return out
+
+
+# =====================================================================================
+# 6. RISK SCORE
+# =====================================================================================
+# Every type has a base risk. The worst finding sets the level, and each extra finding adds a little (up to 25).
+RISK_BASE = {"credential": 70, "id_number": 70, "url_internal": 40, "phone": 35, "email": 15}
+RISK_WORDS = {"credential": ("credential", "credentials"), "id_number": ("ID number", "ID numbers"),
+              "url_internal": ("internal URL", "internal URLs"), "phone": ("phone number", "phone numbers"),
+              "email": ("email", "emails")}
+RISK_ADVICE = {"High": "Do not share this screenshot until the sensitive areas are hidden.",
+               "Medium": "Check every item before sharing, or hide them.",
+               "Low": "Low risk, but consider hiding these items.",
+               "None": "Nothing sensitive was found. Look over the image once before sharing."}
+
+
+def risk_assessment(flagged):
+    """Turn the flagged items into one verdict: level (High/Medium/Low/None), score 0-100, headline, advice, counts."""
+    flagged = [r for r in flagged if r["label"] in RISK_BASE]
+    if not flagged:
+        return {"level": "None", "score": 0, "headline": "No sensitive data found",
+                "advice": RISK_ADVICE["None"], "counts": {}}
+    counts = {}
+    for r in flagged:
+        counts[r["label"]] = counts.get(r["label"], 0) + 1
+    score = min(100, max(RISK_BASE[k] for k in counts) + min(25, 3 * (len(flagged) - 1)))
+    level = "High" if score >= 60 else "Medium" if score >= 30 else "Low"
+    parts = [f"{n} {RISK_WORDS[k][0 if n == 1 else 1]}"
+             for k, n in sorted(counts.items(), key=lambda kv: -RISK_BASE[kv[0]])]
+    listed = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
+    return {"level": level, "score": score, "headline": f"{level} risk: {listed} found",
+            "advice": RISK_ADVICE[level], "counts": counts}
