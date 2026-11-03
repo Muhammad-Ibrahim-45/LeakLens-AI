@@ -46,7 +46,8 @@ st.markdown(CSS, unsafe_allow_html=True)
 
 # ------------------------------------------------------------------ helpers
 def hex_color(label):
-    b, g, r = detector.COLORS[label]
+    # .get() prevents the KeyError by returning a default RGB tuple if the label is missing
+    b, g, r = detector.COLORS.get(label, (128, 128, 128))
     return f"#{r:02x}{g:02x}{b:02x}"
 
 
